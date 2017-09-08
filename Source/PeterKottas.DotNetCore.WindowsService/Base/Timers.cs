@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace PeterKottas.DotNetCore.WindowsService.Base
 {
@@ -11,7 +10,7 @@ namespace PeterKottas.DotNetCore.WindowsService.Base
 
         public void Start(string timerName, int interval, Action onTimer, Action<Exception> onException = null)
         {
-            var tmpTimer = timers.Where(x => x.Name == timerName).FirstOrDefault();
+            var tmpTimer = timers.FirstOrDefault(x => x.Name == timerName);
             if (tmpTimer == null)
             {
                 tmpTimer = new Timer(timerName, interval, onTimer, onException);
@@ -29,7 +28,7 @@ namespace PeterKottas.DotNetCore.WindowsService.Base
 
         public void Update(string timerName, int interval = 0, Action onTimer = null, Action<Exception> onException = null)
         {
-            var tmpTimer = timers.Where(x => x.Name == timerName).FirstOrDefault();
+            var tmpTimer = timers.FirstOrDefault(x => x.Name == timerName);
             if (tmpTimer != null)
             {
                 if (onTimer != null)
@@ -57,7 +56,7 @@ namespace PeterKottas.DotNetCore.WindowsService.Base
 
         public void Resume(string timerName)
         {
-            var tmpTimer = timers.Where(x => x.Name == timerName).FirstOrDefault();
+            var tmpTimer = timers.FirstOrDefault(x => x.Name == timerName);
             if (tmpTimer != null)
             {
                 tmpTimer.Resume();
@@ -74,7 +73,7 @@ namespace PeterKottas.DotNetCore.WindowsService.Base
 
         public void Pause(string timerName)
         {
-            var tmpTimer = timers.Where(x => x.Name == timerName).FirstOrDefault();
+            var tmpTimer = timers.FirstOrDefault(x => x.Name == timerName);
             if (tmpTimer != null)
             {
                 tmpTimer.Pause();
@@ -91,7 +90,7 @@ namespace PeterKottas.DotNetCore.WindowsService.Base
 
         public void Stop(string timerName)
         {
-            var tmpTimer = timers.Where(x => x.Name == timerName).FirstOrDefault();
+            var tmpTimer = timers.FirstOrDefault(x => x.Name == timerName);
             if (tmpTimer != null)
             {
                 tmpTimer.Stop();

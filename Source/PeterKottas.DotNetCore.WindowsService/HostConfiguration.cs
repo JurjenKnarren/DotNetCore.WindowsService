@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using PeterKottas.DotNetCore.WindowsService.Enums;
 using PeterKottas.DotNetCore.WindowsService.Interfaces;
+using System.Diagnostics;
 
 namespace PeterKottas.DotNetCore.WindowsService
 {
     public class HostConfiguration<SERVICE> where SERVICE : IMicroService
     {
-        public HostConfiguration()
+        public HostConfiguration(TraceSource trace)
         {
-            OnServiceStop = service => { };
+            OnServiceStart = (service, arguments) => { trace.TraceEvent(TraceEventType.Information, 1, $"OnServiceStart service {this.Name}"); };
+            OnServiceStop = service => { trace.TraceEvent(TraceEventType.Information, 1, $"OnServiceStop service {this.Name}"); };
             OnServiceError = e =>
             {
-                Console.WriteLine(e.ToString());
+                trace.TraceEvent(TraceEventType.Error, 1, e.ToString());
             };
         }
 

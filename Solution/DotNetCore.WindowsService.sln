@@ -1,12 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{8D5372CB-67BA-415A-B9B0-6C3771A6907E}"
-	ProjectSection(SolutionItems) = preProject
-		..\global.json = ..\global.json
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PeterKottas.DotNetCore.WindowsService", "..\Source\PeterKottas.DotNetCore.WindowsService\PeterKottas.DotNetCore.WindowsService.csproj", "{19F85232-0FED-439E-90BF-BDCD6567F2B3}"
 EndProject
@@ -35,5 +32,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4E2D85A0-A88F-45CC-91CF-9ADDEE0DBFE8}
 	EndGlobalSection
 EndGlobal

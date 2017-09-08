@@ -1,10 +1,7 @@
 ﻿using Microsoft.Extensions.PlatformAbstractions;
-using PeterKottas.DotNetCore.WindowsService;
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace PeterKottas.DotNetCore.WindowsService.Example
 {
@@ -12,33 +9,33 @@ namespace PeterKottas.DotNetCore.WindowsService.Example
     {
         public static void Main(string[] args)
         {
-            var fileName = Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, "log.txt");
             ServiceRunner<ExampleService>.Run(config =>
             {
-                var name = config.GetDefaultName();
+                const string svcName = nameof(ExampleService);
+                config.HostConfiguration.Name = svcName;
+                var trace = new TraceSource(typeof(ExampleService).FullName, SourceLevels.All);
                 config.Service(serviceConfig =>
                 {
                     serviceConfig.ServiceFactory((extraArguments, controller) =>
                     {
-                        return new ExampleService(controller);
+                        return new ExampleService(controller, trace, config.HostConfiguration.Action == Enums.ActionEnum.RunInteractive);
                     });
 
                     serviceConfig.OnStart((service, extraParams) =>
                     {
-                        Console.WriteLine("Service {0} started", name);
+                        trace.TraceEvent(TraceEventType.Information, 1, $"Service {svcName} started");
                         service.Start();
                     });
 
                     serviceConfig.OnStop(service =>
                     {
-                        Console.WriteLine("Service {0} stopped", name);
+                        trace.TraceEvent(TraceEventType.Information, 2, $"Service {svcName} stopped");
                         service.Stop();
                     });
 
                     serviceConfig.OnError(e =>
                     {
-                        File.AppendAllText(fileName, $"Exception: {e.ToString()}\n");
-                        Console.WriteLine("Service {0} errored with exception : {1}", name, e.Message);
+                        trace.TraceEvent(TraceEventType.Error, 3, $"Service {svcName} errored with exception:\n{e.ToString()}");
                     });
                 });
             });

@@ -1,24 +1,21 @@
 ﻿using Microsoft.Extensions.PlatformAbstractions;
 using PeterKottas.DotNetCore.WindowsService.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace PeterKottas.DotNetCore.WindowsService.MinimalTemplate
 {
     public class ExampleService : IMicroService
     {
-        private IMicroServiceController controller;
+        private IMicroServiceController _controller;
 
-        public ExampleService()
+        public ExampleService() : this(null)
         {
-            controller = null;
         }
 
         public ExampleService(IMicroServiceController controller)
         {
-            this.controller = controller;
+            _controller = controller;
         }
 
         private string fileName = Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, "log.txt");
@@ -27,9 +24,9 @@ namespace PeterKottas.DotNetCore.WindowsService.MinimalTemplate
             Console.WriteLine("I started");
             Console.WriteLine(fileName);
             File.AppendAllText(fileName, "Started\n");
-            if (controller != null)
+            if (_controller != null)
             {
-                controller.Stop();
+                _controller.Stop();
             }
         }
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Diagnostics;
 using PeterKottas.DotNetCore.WindowsService.Base;
 using PeterKottas.DotNetCore.WindowsService.Interfaces;
 using Microsoft.Extensions.PlatformAbstractions;
@@ -11,9 +10,8 @@ namespace PeterKottas.DotNetCore.WindowsService.Example
     {
         private IMicroServiceController controller;
 
-        public ExampleServiceTimer()
+        public ExampleServiceTimer() : this(null)
         {
-            controller = null;
         }
 
         public ExampleServiceTimer(IMicroServiceController controller)

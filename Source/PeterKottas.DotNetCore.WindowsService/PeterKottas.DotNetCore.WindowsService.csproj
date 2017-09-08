@@ -3,6 +3,10 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <Version>2.0.0</Version>
+    <PackageId>PeterKottas_J.DotNetCore.WindowsService</PackageId>
+    <Authors>PeterKottas_J.DotNetCore.WindowsService</Authors>
+    <Company>PeterKottas_J.DotNetCore.WindowsService</Company>
+    <Product>PeterKottas_J.DotNetCore.WindowsService</Product>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="DasMulli.Win32.ServiceUtils" Version="1.0.1" />

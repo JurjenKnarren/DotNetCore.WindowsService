@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using PeterKottas.DotNetCore.WindowsService.Configurators.Service;
 using PeterKottas.DotNetCore.WindowsService.Interfaces;
 
@@ -9,84 +6,30 @@ namespace PeterKottas.DotNetCore.WindowsService
 {
     public class HostConfigurator<SERVICE> where SERVICE : IMicroService
     {
-        HostConfiguration<SERVICE> innerConfig;
-        public HostConfigurator(HostConfiguration<SERVICE> innerConfig)
+        public HostConfiguration<SERVICE> HostConfiguration { get; }
+        
+        public HostConfigurator(HostConfiguration<SERVICE> hostConfiguration)
         {
-            this.innerConfig = innerConfig;
-        }
-
-        public void SetName(string serviceName, bool force = false)
-        {
-            if (!string.IsNullOrEmpty(innerConfig.Name) || force)
-            {
-                innerConfig.Name = serviceName;
-            }
-        }
-
-        public void SetDisplayName(string displayName, bool force = false)
-        {
-            if (!string.IsNullOrEmpty(innerConfig.DisplayName) || force)
-            {
-                innerConfig.DisplayName = displayName;
-            }
-        }
-
-        public void SetDescription(string description, bool force = false)
-        {
-            if (!string.IsNullOrEmpty(innerConfig.Description) || force)
-            {
-                innerConfig.Description = description;
-            }
-        }
-
-        public string GetDefaultName()
-        {
-            return innerConfig.Name;
-        }
-
-        public bool IsNameNullOrEmpty
-        {
-            get
-            {
-                return string.IsNullOrEmpty(innerConfig.Name);
-            }
-        }
-
-        public bool IsDescriptionNullOrEmpty
-        {
-            get
-            {
-                return string.IsNullOrEmpty(innerConfig.Description);
-            }
-        }
-
-        public bool IsDisplayNameNullOrEmpty
-        {
-            get
-            {
-                return string.IsNullOrEmpty(innerConfig.DisplayName);
-            }
+            HostConfiguration = hostConfiguration;
         }
 
         public void Service(Action<ServiceConfigurator<SERVICE>> serviceConfigAction)
         {
+            if (serviceConfigAction == null)
+                throw new ArgumentNullException(nameof(serviceConfigAction));
+
             try
             {
-                var serviceConfig = new ServiceConfigurator<SERVICE>(innerConfig);
+                var serviceConfig = new ServiceConfigurator<SERVICE>(HostConfiguration);
                 serviceConfigAction(serviceConfig);
-                if (innerConfig.ServiceFactory == null)
-                {
-                    throw new ArgumentException("It's necesarry to configure action that creates the service (ServiceFactory)");
-                }
-
-                if (innerConfig.OnServiceStart == null)
-                {
-                    throw new ArgumentException("It's necesarry to configure action that is called when the service starts");
-                }
+                if (HostConfiguration.ServiceFactory == null)
+                    throw new ArgumentException("It's necessary to configure action that creates the service", nameof(HostConfiguration.ServiceFactory));
+                if (HostConfiguration.OnServiceStart == null)
+                    throw new ArgumentException("It's necessary to configure action that is called when the service starts", nameof(HostConfiguration.OnServiceStart));
             }
             catch (Exception e)
             {
-                throw new ArgumentException("Configuring the service thrown an exception", e);
+                throw new ArgumentException("Configuring the service throws an exception", e);
             }
         }
     }

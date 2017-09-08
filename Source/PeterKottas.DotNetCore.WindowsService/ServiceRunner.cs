@@ -15,60 +15,64 @@ namespace PeterKottas.DotNetCore.WindowsService
 {
     public static class ServiceRunner<SERVICE> where SERVICE : IMicroService
     {
+        static TraceSource _trace = new TraceSource(typeof(SERVICE).FullName, SourceLevels.All);
+
         public static int Run(Action<HostConfigurator<SERVICE>> runAction)
         {
-            var innerConfig = new HostConfiguration<SERVICE>();
-            innerConfig.Action = ActionEnum.RunInteractive;
-            innerConfig.Name = typeof(SERVICE).FullName;
-
-            innerConfig.ExtraArguments = Parser.Parse(config =>
+            var innerConfiguration = new HostConfiguration<SERVICE>(_trace)
             {
-                config.AddParameter(new CmdArgParam()
+                Action = ActionEnum.RunInteractive,
+                Name = typeof(SERVICE).FullName
+            };
+
+            innerConfiguration.ExtraArguments = Parser.Parse(config =>
+            {
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "username",
                     Description = "Username for the service account",
                     Value = val =>
                     {
-                        innerConfig.Username = val;
+                        innerConfiguration.Username = val;
                     }
                 });
-                config.AddParameter(new CmdArgParam()
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "password",
                     Description = "Password for the service account",
                     Value = val =>
                     {
-                        innerConfig.Password = val;
+                        innerConfiguration.Password = val;
                     }
                 });
-                config.AddParameter(new CmdArgParam()
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "name",
                     Description = "Service name",
                     Value = val =>
                     {
-                        innerConfig.Name = val;
+                        innerConfiguration.Name = val;
                     }
                 });
-                config.AddParameter(new CmdArgParam()
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "description",
                     Description = "Service description",
                     Value = val =>
                     {
-                        innerConfig.Description = val;
+                        innerConfiguration.Description = val;
                     }
                 });
-                config.AddParameter(new CmdArgParam()
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "displayName",
                     Description = "Service display name",
                     Value = val =>
                     {
-                        innerConfig.DisplayName = val;
+                        innerConfiguration.DisplayName = val;
                     }
                 });
-                config.AddParameter(new CmdArgParam()
+                config.AddParameter(new CmdArgParam
                 {
                     Key = "action",
                     Description = "Installs the service. It's run like console application otherwise",
@@ -77,26 +81,27 @@ namespace PeterKottas.DotNetCore.WindowsService
                         switch (val)
                         {
                             case "install":
-                                innerConfig.Action = ActionEnum.Install;
+                                innerConfiguration.Action = ActionEnum.Install;
                                 break;
                             case "start":
-                                innerConfig.Action = ActionEnum.Start;
+                                innerConfiguration.Action = ActionEnum.Start;
                                 break;
                             case "stop":
-                                innerConfig.Action = ActionEnum.Stop;
+                                innerConfiguration.Action = ActionEnum.Stop;
                                 break;
                             case "uninstall":
-                                innerConfig.Action = ActionEnum.Uninstall;
+                                innerConfiguration.Action = ActionEnum.Uninstall;
                                 break;
                             case "run":
-                                innerConfig.Action = ActionEnum.Run;
+                                innerConfiguration.Action = ActionEnum.Run;
                                 break;
                             case "run-interactive":
-                                innerConfig.Action = ActionEnum.RunInteractive;
+                                innerConfiguration.Action = ActionEnum.RunInteractive;
                                 break;
                             default:
                                 Console.WriteLine("{0} is unrecognized, will run the app as console application instead");
-                                innerConfig.Action = ActionEnum.RunInteractive;
+                                _trace.TraceEvent(TraceEventType.Warning, 2, "{0} is unrecognized, will run the app as console application instead");
+                                innerConfiguration.Action = ActionEnum.RunInteractive;
                                 break;
                         }
                     }
@@ -106,46 +111,46 @@ namespace PeterKottas.DotNetCore.WindowsService
                 config.UseAppDescription("Sample microservice application");
             });
 
-            if (string.IsNullOrEmpty(innerConfig.Name))
+            if (string.IsNullOrEmpty(innerConfiguration.Name))
             {
-                innerConfig.Name = typeof(SERVICE).FullName;
+                innerConfiguration.Name = typeof(SERVICE).FullName;
             }
 
-            if (string.IsNullOrEmpty(innerConfig.DisplayName))
+            if (string.IsNullOrEmpty(innerConfiguration.DisplayName))
             {
-                innerConfig.DisplayName = innerConfig.Name;
+                innerConfiguration.DisplayName = innerConfiguration.Name;
             }
 
-            if (string.IsNullOrEmpty(innerConfig.Description))
+            if (string.IsNullOrEmpty(innerConfiguration.Description))
             {
-                innerConfig.Description = "No description";
+                innerConfiguration.Description = "No description";
             }
 
-            var hostConfiguration = new HostConfigurator<SERVICE>(innerConfig);
+            var hostConfiguration = new HostConfigurator<SERVICE>(innerConfiguration);
 
             try
             {
-                runAction(hostConfiguration);
-                if (innerConfig.Action == ActionEnum.Run || innerConfig.Action == ActionEnum.RunInteractive)
+                runAction?.Invoke(hostConfiguration);
+                if (innerConfiguration.Action == ActionEnum.Run || innerConfiguration.Action == ActionEnum.RunInteractive)
                 {
                     var controller = new MicroServiceController(
                         () =>
                         {
                             var task = Task.Factory.StartNew(() =>
                             {
-                                UsingServiceController(innerConfig, (sc, cfg) => StopService(cfg, sc));
+                                UsingServiceController(innerConfiguration, (sc, cfg) => StopService(cfg, sc));
                             });
                             //task.Wait();
                         }
                     );
-                    innerConfig.Service = innerConfig.ServiceFactory(innerConfig.ExtraArguments, controller);
+                    innerConfiguration.Service = innerConfiguration.ServiceFactory(innerConfiguration.ExtraArguments, controller);
                 }
-                ConfigureService(innerConfig);
+                ConfigureService(innerConfiguration);
                 return 0;
             }
             catch (Exception e)
             {
-                Error(innerConfig, e);
+                Error(innerConfiguration, e);
                 return -1;
             }
         }
@@ -157,7 +162,7 @@ namespace PeterKottas.DotNetCore.WindowsService
             {
                 var appPath = Path.Combine(PlatformServices.Default.Application.ApplicationBasePath,
                     PlatformServices.Default.Application.ApplicationName + ".dll");
-                host = string.Format("{0} \"{1}\"", host, appPath);
+                host = $"{host} \"{appPath}\"";
             }
             if (!host.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase))
             {
@@ -165,13 +170,12 @@ namespace PeterKottas.DotNetCore.WindowsService
                 extraArguments = extraArguments.Skip(1).ToList();
             }
 
-            var fullServiceCommand = string.Format("{0} {1} {2}", host, string.Join(" ", extraArguments), "action:run");
-            return fullServiceCommand;
+            return $"{host} {string.Join(" ", extraArguments)} {"action:run"}";
         }
 
         private static void Install(HostConfiguration<SERVICE> config, ServiceController sc, int counter = 0)
         {
-            Win32ServiceCredentials cred = Win32ServiceCredentials.LocalSystem;
+            var cred = Win32ServiceCredentials.LocalSystem;
             if (!string.IsNullOrEmpty(config.Username))
             {
                 cred = new Win32ServiceCredentials(config.Username, config.Password);
@@ -187,13 +191,13 @@ namespace PeterKottas.DotNetCore.WindowsService
                     autoStart: true,
                     startImmediately: true,
                     errorSeverity: ErrorSeverity.Normal);
-                Console.WriteLine($@"Successfully registered and started service ""{config.Name}"" (""{config.Description}"")");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Successfully registered and started service ""{config.Name}"" (""{config.Description}"")");
             }
             catch (Exception e)
             {
                 if (e.Message.Contains("already exists"))
                 {
-                    Console.WriteLine($@"Service ""{config.Name}"" (""{config.Description}"") was already installed. Reinstalling...");
+                    _trace.TraceEvent(TraceEventType.Warning, 2, $@"Service ""{config.Name}"" (""{config.Description}"") was already installed. Reinstalling...");
                     Reinstall(config, sc);
                 }
                 else if (e.Message.Contains("The specified service has been marked for deletion"))
@@ -202,20 +206,21 @@ namespace PeterKottas.DotNetCore.WindowsService
                     {
                         System.Threading.Thread.Sleep(500);
                         counter++;
-                        string suffix = "th";
-                        if (counter == 1)
+                        var suffix = "th";
+                        switch (counter)
                         {
-                            suffix = "st";
+                            case 1:
+                                suffix = "st";
+                                break;
+                            case 2:
+                                suffix = "nd";
+                                break;
+                            case 3:
+                                suffix = "rd";
+                                break;
                         }
-                        else if (counter == 2)
-                        {
-                            suffix = "nd";
-                        }
-                        else if (counter == 3)
-                        {
-                            suffix = "rd";
-                        }
-                        Console.WriteLine("The specified service has been marked for deletion. Retrying {0}{1} time", counter, suffix);
+
+                        _trace.TraceEvent(TraceEventType.Warning, 2, $"The specified service has been marked for deletion. Retrying {counter}{suffix} time");
                         Install(config, sc, counter);
                     }
                     else
@@ -239,7 +244,7 @@ namespace PeterKottas.DotNetCore.WindowsService
                     StopService(config, sc);
                 }
                 new Win32ServiceManager().DeleteService(config.Name);
-                Console.WriteLine($@"Successfully unregistered service ""{config.Name}"" (""{config.Description}"")");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Successfully unregistered service ""{config.Name}"" (""{config.Description}"")");
             }
             catch (Exception e)
             {
@@ -247,7 +252,7 @@ namespace PeterKottas.DotNetCore.WindowsService
                 {
                     throw;
                 }
-                Console.WriteLine($@"Service ""{config.Name}"" (""{config.Description}"") does not exist. No action taken.");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Service ""{config.Name}"" (""{config.Description}"") does not exist. No action taken.");
             }
         }
 
@@ -257,11 +262,11 @@ namespace PeterKottas.DotNetCore.WindowsService
             {
                 sc.Stop();
                 sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromMilliseconds(1000));
-                Console.WriteLine($@"Successfully stopped service ""{config.Name}"" (""{config.Description}"")");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Successfully stopped service ""{config.Name}"" (""{config.Description}"")");
             }
             else
             {
-                Console.WriteLine($@"Service ""{config.Name}"" (""{config.Description}"") is already stopped or stop is pending.");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Service ""{config.Name}"" (""{config.Description}"") is already stopped or stop is pending.");
             }
         }
 
@@ -271,11 +276,11 @@ namespace PeterKottas.DotNetCore.WindowsService
             {
                 sc.Start();
                 sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromMilliseconds(1000));
-                Console.WriteLine($@"Successfully started service ""{config.Name}"" (""{config.Description}"")");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Successfully started service ""{config.Name}"" (""{config.Description}"")");
             }
             else
             {
-                Console.WriteLine($@"Service ""{config.Name}"" (""{config.Description}"") is already running or start is pending.");
+                _trace.TraceEvent(TraceEventType.Warning, 2, $@"Service ""{config.Name}"" (""{config.Description}"") is already running or start is pending.");
             }
         }
 
@@ -317,7 +322,7 @@ namespace PeterKottas.DotNetCore.WindowsService
         {
             using (var sc = new ServiceController(config.Name))
             {
-                action(sc, config);
+                action?.Invoke(sc, config);
             }
         }
 

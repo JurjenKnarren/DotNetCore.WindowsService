@@ -10,34 +10,36 @@ namespace PeterKottas.DotNetCore.WindowsService.Example
 {
     public class ExampleService : IMicroService
     {
-        private IMicroServiceController controller;
+        private readonly IMicroServiceController _controller;
+        private readonly TraceSource _trace;
+        private readonly bool _isConsoleContext;
 
-        public ExampleService()
+        public ExampleService() : this(null, null)
         {
-            controller = null;
         }
 
-        public ExampleService(IMicroServiceController controller)
+        public ExampleService(IMicroServiceController controller, TraceSource trace, bool isConsoleContext = false)
         {
-            this.controller = controller;
+            _controller = controller;
+            _trace = trace;
+            _isConsoleContext = isConsoleContext;
         }
 
-        private string fileName = Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, "log.txt");
         public void Start()
         {
-            Console.WriteLine("I started");
-            Console.WriteLine(fileName);
-            File.AppendAllText(fileName, "Started\n");
-            if (controller != null)
+            _trace.TraceEvent(TraceEventType.Information, 1, $"Start");
+            if (_isConsoleContext)
             {
-                controller.Stop();
+                // Wait for the user to quit the program.
+                Console.WriteLine("Press \'q\' to quit:");
+                while (Console.Read() != 'q') ;
+                Stop();
             }
         }
 
         public void Stop()
         {
-            File.AppendAllText(fileName, "Stopped\n");
-            Console.WriteLine("I stopped");
+            _trace.TraceEvent(TraceEventType.Information, 1, $"Stop");
         }
     }
 }
